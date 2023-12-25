@@ -10,7 +10,9 @@ import { FaTrash } from 'react-icons/fa'
 
 import {db} from '../../services/firebaseConnections'
 
-import {addDoc, collection, query, orderBy, where,onSnapshot} from 'firebase/firestore'
+import {addDoc, collection, query, orderBy, where, onSnapshot, doc, deleteDoc} from 'firebase/firestore'
+
+import Link from 'next/link'
 
 interface HomeProps {
     user: {
@@ -41,7 +43,7 @@ export default function Dashboard({user}: HomeProps){
                 where("user", "==", user?.email)
                 )
                 
-            onSnapshot(q, (snapshot) => {
+            onSnapshot(q, (snapshot) => { //onSnapshot -> sempre fica buscando atualizacoes no banco
                 
                 let lista = [] as TaskProps[];
                 snapshot.forEach((doc) => {
@@ -86,6 +88,21 @@ export default function Dashboard({user}: HomeProps){
         }
     }
 
+    async function handleShare(id: string){
+        await navigator.clipboard.writeText(
+            `${process.env.NEXT_PUBLIC_URL}/task/${id}`
+        );
+
+        alert("URL Copiada com sucesso")
+    }
+
+    async function handleDeleteTask(id: string){
+        const docRef = doc(db, 'tarefas', id)
+        await deleteDoc(docRef)
+
+        alert("Tarefa deletada com sucesso")
+    }
+
     return(
         <div className={styles.container}>
             <Head>
@@ -127,7 +144,7 @@ export default function Dashboard({user}: HomeProps){
                          {item.public && (
                             <div className={styles.tagContainer}>
                                 <label className={styles.tag}>PÚBLICO</label>
-                                <button className={styles.shareButton}>
+                                <button className={styles.shareButton} onClick={() => handleShare(item.id)}>
                                     <FiShare2
                                         size={22}
                                         color='#3183FF'
@@ -137,8 +154,14 @@ export default function Dashboard({user}: HomeProps){
                          )}
  
                          <div className={styles.taskContent}>
-                             <p>{item.tarefa}</p>
-                             <button className={styles.trashButton}>
+                             {item.public ? (
+                                <Link href={`/task/${item.id}`}>
+                                    <p>{item.tarefa}</p>
+                                </Link>
+                             ): (
+                                <p>{item.tarefa}</p>
+                             )}
+                             <button className={styles.trashButton} onClick={() => handleDeleteTask(item.id)}>
                                  <FaTrash
                                      size={24}
                                      color='#EA3140'
